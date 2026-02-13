@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@azure/msal-browser": "^5.2.0",
+    "@azure/msal-react": "^5.0.4",
+    "axios": "^1.13.5"
+  }
+}
