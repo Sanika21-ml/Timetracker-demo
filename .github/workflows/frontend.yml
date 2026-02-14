@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'frontend/**'
+      - 'frontend-react/**'
 
 jobs:
   build-and-deploy:
