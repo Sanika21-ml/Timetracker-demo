@@ -1,0 +1,31 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+        working-directory: ./backend
+
+      - name: Deploy to Azure Backend App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: backendappserv
+          publish-profile: ${{ secrets.BACKEND_PUBLISH_PROFILE }}
+          package: ./backend
