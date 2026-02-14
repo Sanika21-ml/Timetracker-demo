@@ -17,19 +17,19 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install Dependencies
         run: npm install
-        working-directory: ./frontend
+        working-directory: ./frontend-react
 
       - name: Build
         run: npm run build
-        working-directory: ./frontend
+        working-directory: ./frontend-react
 
       - name: Deploy to Azure Frontend App
         uses: azure/webapps-deploy@v2
         with:
           app-name: frontendappserv
           publish-profile: ${{ secrets.FRONTEND_PUBLISH_PROFILE }}
-          package: ./frontend/build
+          package: ./frontend-react/build

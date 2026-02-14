@@ -17,15 +17,15 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install Dependencies
         run: npm install
-        working-directory: ./backend
+        working-directory: ./backend-nodejs
 
       - name: Deploy to Azure Backend App
         uses: azure/webapps-deploy@v2
         with:
           app-name: backendappserv
           publish-profile: ${{ secrets.BACKEND_PUBLISH_PROFILE }}
-          package: ./backend
+          package: ./backend-nodejs
