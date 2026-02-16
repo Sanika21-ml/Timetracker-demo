@@ -31,7 +31,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: frontend-react/dist   # ✅ For Vite
+          path: frontend-react/build  
           if-no-files-found: error
 
   deploy:
@@ -60,3 +60,4 @@ jobs:
           app-name: 'frontendserviceapp'
           slot-name: 'Production'
           package: .
+
