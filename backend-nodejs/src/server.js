@@ -1,5 +1,6 @@
 require("dotenv").config();
 require("./config/appInsights");
+require("./config/db.js");
 
 const express = require("express");
 const cors = require("cors");
