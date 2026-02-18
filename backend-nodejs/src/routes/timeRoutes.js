@@ -3,7 +3,6 @@ const router = express.Router();
 const auth = require("../middleware/authMiddleware");
 const controller = require("../controllers/timeController");
 
-router.post("/", controller.addTimeEntry);
-router.get("/", controller.addTimeEntry);
-
+router.post("/add", controller.addTimeEntry);
+router.get("/get", controller.addTimeEntry);
 module.exports = router;

@@ -1,24 +1,19 @@
 const pool = require("../config/db");
 
 exports.addTimeEntry = async (req, res) => {
-  const { projectId, workstreamId, date, hours } = req.body;
+  const { projectId, workstreamId, userId, date, hours } = req.body;
 
   try {
-    await pool.connect();
-    await pool.request()
-      .input("projectId", projectId)
-      .input("workstreamId", workstreamId)
-      .input("date", date)
-      .input("hours", hours)
-      .input("userEmail", req.user.email)
-      .query(`
-        INSERT INTO TimeEntries 
-        (ProjectId, WorkstreamId, Date, Hours, UserEmail)
-        VALUES (@projectId, @workstreamId, @date, @hours, @userEmail)
-      `);
+    await pool.query(
+      `INSERT INTO TimeEntries
+       (time_entry_id, project_id, workstream_id, user_id, date, hours,comment)
+       VALUES (UUID(), ?, ?, ?, ?, ?)`,
+      [projectId, workstreamId, userId, date, hours, comment]
+    );
 
-    res.status(201).json({ message: "Time entry added" });
-  } catch (err) {
-    res.status(500).json(err.message);
+    res.status(201).json({ message: "Time entry added successfully" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
