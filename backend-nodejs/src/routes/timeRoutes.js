@@ -1,8 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/authMiddleware");
-const controller = require("../controllers/timeController");
+const timeController = require("../controllers/timeController");
 
-router.post("/add", controller.addTimeEntry);
-router.get("/get", controller.addTimeEntry);
+// Save weekly timesheet
+router.post("/weekly", auth, timeController.addWeeklyTimeEntry);
+// Get weekly timesheet
+router.get("/weekly", auth, timeController.getWeeklyTimeEntry);
+// Delete entry
+router.delete("/:timeEntryId", auth, timeController.deleteTimeEntry);
+
 module.exports = router;

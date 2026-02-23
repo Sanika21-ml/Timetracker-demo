@@ -11,9 +11,9 @@ app.use(express.json());
 const projectRoutes = require("./routes/projectRoutes");
 const timeRoutes = require("./routes/timeRoutes");
 const workstreamRoutes = require("./routes/workstreamRoutes");
+const loginRoutes = require("./routes/login.js");
 
-
-
+app.use("/api/login", loginRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/timesheet", timeRoutes);
 app.use("/api/workstreams", workstreamRoutes);
