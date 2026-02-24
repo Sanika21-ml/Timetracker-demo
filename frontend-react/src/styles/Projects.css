@@ -1,0 +1,253 @@
+/* ================= PAGE ================= */
+.projects-page {
+  padding: 24px;
+  background: #f9fafb;
+  height: 80vh;              /* 🔒 lock page height */
+  display: flex;
+  flex-direction: column;    /* stack header + table */
+  overflow: hidden;          /* 🚫 prevent page scroll */
+}
+
+/* ================= HEADER ================= */
+.projects-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-shrink: 0;             /* prevent shrinking */
+}
+
+.projects-header h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  color: #000;
+}
+
+.projects-header p {
+  margin: 2px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ================= SEARCH ================= */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  padding: 10px 14px;
+  border-radius: 12px;
+  width: 260px;
+}
+
+.search-box input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+}
+
+/* ================= ADD BUTTON ================= */
+.add-project-btn {
+  background: #ff5a00;
+  color: #fff;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 14px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+/* ================= TABLE WRAPPER ================= */
+.projects-table-wrapper {
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid #e5e7eb;
+
+  flex: 1;                   /* 🔑 take remaining height */
+  overflow-y: auto;          /* ✅ scroll only table */
+}
+
+/* ================= TABLE ================= */
+.projects-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.projects-table thead th {
+  background: #f9fafb;
+  position: sticky;          /* 🧲 sticky header */
+  top: 0;
+  z-index: 2;
+  text-align: left;
+  padding: 16px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #000;
+}
+
+.projects-table tbody td {
+  padding: 18px 20px;
+  border-top: 1px solid #edf2f7;
+  font-size: 15px;
+  color: #000;
+}
+
+.project-name {
+  font-weight: 600;
+}
+
+/* ================= BADGES ================= */
+.badge {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.badge-client {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-internal {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.badge-status {
+  background: #e0e7ff;
+  color: #1e40af;
+}
+
+/* ================= ACTIONS ================= */
+.actions-col {
+  text-align: right;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+.actions svg {
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 18px;
+}
+
+.actions svg:hover {
+  color: #374151;
+}
+
+.actions .delete:hover {
+  color: #dc2626;
+}
+
+/* ================= MODAL ================= */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal {
+  background: #fff;
+  width: 760px;
+  border-radius: 18px;
+  padding: 24px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.modal-grid .full {
+  grid-column: span 3;
+}
+
+.modal-grid label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.modal-grid input,
+.modal-grid select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+}
+
+.modal-footer {
+  margin-top: 22px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 12px;
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 12px;
+}
+
+/* ================= DELETE CONFIRM ================= */
+.confirm-modal {
+  background: #fff;
+  padding: 24px;
+  border-radius: 18px;
+  width: 320px;
+  text-align: center;
+}
+
+.confirm-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.confirm-actions .danger {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 10px;
+}

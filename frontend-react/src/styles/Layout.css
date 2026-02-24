@@ -1,0 +1,27 @@
+.layout {
+  display: flex;
+}
+
+.header {
+  position: fixed;
+  top: 0;
+  left: 240px; /* same as sidebar width */
+  right: 0;
+  height: 60px;
+  background: white; /* BLACK */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 15px;
+  border-bottom: 1px solid #e7dbdb; /* RED accent */
+  z-index: 90;
+}
+
+.page-content {
+  margin-left: 240px;
+  margin-top: 56px; /* IMPORTANT: push content below header */
+  width: calc(100%);
+  min-height: 87vh;
+  padding: 0px;
+  background:  #f8fafc;
+}
