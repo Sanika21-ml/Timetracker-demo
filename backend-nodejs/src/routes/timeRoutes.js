@@ -8,6 +8,6 @@ router.post("/weekly", auth, timeController.addWeeklyTimeEntry);
 // Get weekly timesheet
 router.get("/weekly", auth, timeController.getWeeklyTimeEntry);
 // Delete entry
-router.delete("/:timeEntryId", auth, timeController.deleteTimeEntry);
+router.delete("/weekly/:timeEntryId", auth, timeController.deleteTimeEntry);
 
 module.exports = router;

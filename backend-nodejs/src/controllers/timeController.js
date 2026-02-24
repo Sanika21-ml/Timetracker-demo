@@ -1,11 +1,21 @@
-// controllers/timesheetController.js
-
+const { v4: uuidv4 } = require("uuid");
 const pool = require("../config/db");
 
-// SAVE WEEKLY TIMESHEET
 exports.addWeeklyTimeEntry = async (req, res) => {
-  const { entries } = req.body;
-  const userId = req.user.user_id; 
+  const { entries, week_start_date, week_end_date } = req.body;
+  const userId = req.user?.user_id;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!entries || !Array.isArray(entries) || entries.length === 0) {
+    return res.status(400).json({ error: "entries array is required" });
+  }
+
+  if (!week_start_date || !week_end_date) {
+    return res.status(400).json({ error: "week_start_date and week_end_date required" });
+  }
 
   const connection = await pool.getConnection();
 
@@ -15,117 +25,130 @@ exports.addWeeklyTimeEntry = async (req, res) => {
     for (const row of entries) {
       const { project_workstream_id, weekEntries } = row;
 
-      for (const day of weekEntries) {
-        if (!day.hours || parseFloat(day.hours) === 0) continue;
+      if (!project_workstream_id || !weekEntries) continue;
 
-        await connection.query(
-          `INSERT INTO time_entries
-            (timeentry_id, user_id, project_workstream_id, entry_date, hours, comment)
-           VALUES (UUID(), ?, ?, ?, ?, ?)
-           ON DUPLICATE KEY UPDATE
-             hours = VALUES(hours),
-             comment = VALUES(comment)`,
-          [
-            userId,
-            project_workstream_id,
-            day.date,
-            day.hours,
-            day.comment || null
-          ]
-        );
-      }
+      const timeentry_id = uuidv4();
+
+      await connection.query(
+        `INSERT INTO time_entries
+         (timeentry_id, user_id, project_workstream_id, week_start_date, week_end_date, week_entries)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+            week_entries = VALUES(week_entries),
+            updated_at = CURRENT_TIMESTAMP`,
+        [
+          timeentry_id,
+          userId,
+          project_workstream_id,
+          week_start_date,
+          week_end_date,
+          JSON.stringify(weekEntries)
+        ]
+      );
     }
 
     await connection.commit();
-    res.status(201).json({ message: "Weekly timesheet saved successfully" });
+
+    res.status(201).json({
+      message: "Weekly timesheet saved successfully"
+    });
 
   } catch (error) {
-    await connection.rollback(); 
-    console.error(error);
-    res.status(500).json({ error: error.message });
-
+    await connection.rollback();
+    console.error("addOrUpdateWeeklyTimeEntry ERROR:", error);
+    res.status(500).json({ error: "Failed to save weekly timesheet" });
   } finally {
-    connection.release(); 
+    connection.release();
   }
 };
 
-// GET WEEKLY TIMESHEET
 exports.getWeeklyTimeEntry = async (req, res) => {
-  const { startDate, endDate } = req.query;
-  const userId = req.user.user_id; 
+  const { week_start_date } = req.query;
+  const userId = req.user?.user_id;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!week_start_date) {
+    return res.status(400).json({ error: "week_start_date is required" });
+  }
 
   try {
     const [rows] = await pool.query(
       `SELECT 
           t.timeentry_id,
           t.project_workstream_id,
-          t.entry_date,
-          t.hours,
-          t.comment,
+          t.week_start_date,
+          t.week_end_date,
+          t.week_entries,
           p.project_name,
           w.workstream_name
        FROM time_entries t
-       JOIN project_workstream_assign pws 
-            ON t.project_workstream_id = pws.projectworkstream_id
+       JOIN ProjectWorkStreamAssign pws 
+            ON t.project_workstream_id = pws.ProjectWorkStream_id
        JOIN projects p 
             ON pws.project_id = p.project_id
        JOIN workstreams w 
             ON pws.workstream_id = w.workstream_id
        WHERE t.user_id = ?
-       AND t.entry_date BETWEEN ? AND ?
-       ORDER BY p.project_name, w.workstream_name, t.entry_date`,
-      [userId, startDate, endDate]
+       AND t.week_start_date = ?
+       ORDER BY p.project_name, w.workstream_name`,
+      [userId, week_start_date]
     );
 
-    const grouped = {};
+    const formatted = rows.map(row => ({
+      timeentry_id: row.timeentry_id,
+      project_workstream_id: row.project_workstream_id,
+      project_name: row.project_name,
+      workstream_name: row.workstream_name,
+      week_start_date: row.week_start_date,
+      week_end_date: row.week_end_date,
+      weekEntries:
+        typeof row.week_entries === "string"
+          ? JSON.parse(row.week_entries)
+          : row.week_entries
+    }));
 
-    rows.forEach(row => {
-      if (!grouped[row.project_workstream_id]) {
-        grouped[row.project_workstream_id] = {
-          project_workstream_id: row.project_workstream_id,
-          project_name: row.project_name,
-          workstream_name: row.workstream_name,
-          weekEntries: []
-        };
-      }
-
-      grouped[row.project_workstream_id].weekEntries.push({
-        timeentry_id: row.timeentry_id,
-        date: row.entry_date,
-        hours: row.hours,
-        comment: row.comment
-      });
-    });
-
-    res.json(Object.values(grouped));
+    res.status(200).json(formatted);
 
   } catch (error) {
-    console.error(error);
+    console.error("getWeeklyTimeEntry ERROR:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
-// DELETE TIME ENTRY
 exports.deleteTimeEntry = async (req, res) => {
-  const { timeEntryId } = req.params;
-  const userId = req.user.user_id; 
+  const { timeEntryId } = req.params;  
+  const userId = req.user?.user_id;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!timeEntryId) {
+    return res.status(400).json({ error: "timeEntryId is required" });
+  }
 
   try {
     const [result] = await pool.query(
-      `DELETE FROM time_entries 
-       WHERE timeentry_id = ?
-       AND user_id = ?`,
+      `DELETE FROM time_entries
+       WHERE timeentry_id = ? AND user_id = ?`,
       [timeEntryId, userId]
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Entry not found or not authorized" });
+      return res.status(404).json({
+        message: "Weekly entry not found"
+      });
     }
 
-    res.json({ message: "Time entry deleted successfully" });
+    res.status(200).json({
+      message: "Weekly timesheet deleted successfully"
+    });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message });
+    console.error("deleteTimeEntry ERROR:", error);
+    res.status(500).json({ error: "Failed to delete weekly timesheet" });
   }
 };
