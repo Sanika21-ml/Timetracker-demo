@@ -1,13 +1,15 @@
+// controllers/timesheetController.js
+
 const pool = require("../config/db");
 
 // SAVE WEEKLY TIMESHEET
 exports.addWeeklyTimeEntry = async (req, res) => {
   const { entries } = req.body;
+  const userId = req.user.user_id; 
+
+  const connection = await pool.getConnection();
 
   try {
-    const userId = req.user.user_id;
-
-    const connection = await pool.getConnection();
     await connection.beginTransaction();
 
     for (const row of entries) {
@@ -18,11 +20,11 @@ exports.addWeeklyTimeEntry = async (req, res) => {
 
         await connection.query(
           `INSERT INTO time_entries
-          (timeentry_id, user_id, project_workstream_id, entry_date, hours, comment)
-          VALUES (UUID(), ?, ?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE
-            hours = VALUES(hours),
-            comment = VALUES(comment)`,
+            (timeentry_id, user_id, project_workstream_id, entry_date, hours, comment)
+           VALUES (UUID(), ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             hours = VALUES(hours),
+             comment = VALUES(comment)`,
           [
             userId,
             project_workstream_id,
@@ -35,28 +37,27 @@ exports.addWeeklyTimeEntry = async (req, res) => {
     }
 
     await connection.commit();
-    connection.release();
-
-    res.status(201).json({
-      message: "Weekly timesheet saved successfully"
-    });
+    res.status(201).json({ message: "Weekly timesheet saved successfully" });
 
   } catch (error) {
+    await connection.rollback(); 
     console.error(error);
     res.status(500).json({ error: error.message });
+
+  } finally {
+    connection.release(); 
   }
 };
-
 
 // GET WEEKLY TIMESHEET
 exports.getWeeklyTimeEntry = async (req, res) => {
   const { startDate, endDate } = req.query;
+  const userId = req.user.user_id; 
 
   try {
-    const userId = req.user.user_id;
-
     const [rows] = await pool.query(
       `SELECT 
+          t.timeentry_id,
           t.project_workstream_id,
           t.entry_date,
           t.hours,
@@ -65,7 +66,7 @@ exports.getWeeklyTimeEntry = async (req, res) => {
           w.workstream_name
        FROM time_entries t
        JOIN project_workstream_assign pws 
-            ON t.project_workstream_id = pws.project_workstream_id
+            ON t.project_workstream_id = pws.projectworkstream_id
        JOIN projects p 
             ON pws.project_id = p.project_id
        JOIN workstreams w 
@@ -89,6 +90,7 @@ exports.getWeeklyTimeEntry = async (req, res) => {
       }
 
       grouped[row.project_workstream_id].weekEntries.push({
+        timeentry_id: row.timeentry_id,
         date: row.entry_date,
         hours: row.hours,
         comment: row.comment
@@ -98,24 +100,32 @@ exports.getWeeklyTimeEntry = async (req, res) => {
     res.json(Object.values(grouped));
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 };
 
-
-// DELETE SINGLE ENTRY
+// DELETE TIME ENTRY
 exports.deleteTimeEntry = async (req, res) => {
   const { timeEntryId } = req.params;
+  const userId = req.user.user_id; 
 
   try {
-    await pool.query(
-      "DELETE FROM time_entries WHERE timeentry_id = ?",
-      [timeEntryId]
+    const [result] = await pool.query(
+      `DELETE FROM time_entries 
+       WHERE timeentry_id = ?
+       AND user_id = ?`,
+      [timeEntryId, userId]
     );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Entry not found or not authorized" });
+    }
 
     res.json({ message: "Time entry deleted successfully" });
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 };

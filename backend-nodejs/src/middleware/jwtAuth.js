@@ -1,3 +1,6 @@
+// middleware/jwtAuth.js
+// Used in production with local JWT tokens
+
 const jwt = require("jsonwebtoken");
 
 module.exports = (req, res, next) => {
@@ -9,10 +12,9 @@ module.exports = (req, res, next) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    req.user = decoded;   // contains user_id, email, role_id
-
+    const decoded = jwt.verify(token, process.env.JWT_SECRET); // verify not decode!
+    req.user = decoded;
+    req.user.user_id = decoded.user_id; // normalize user_id
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
