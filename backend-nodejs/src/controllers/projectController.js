@@ -12,7 +12,7 @@ exports.createProject = async (req, res) => {
       project_name,
       project_manager_id,
       projectType_id,
-      status_id,          // ✅ added from ERD & UI
+      status_id,          
       client_name,
       start_date,
       end_date,
@@ -130,6 +130,22 @@ exports.getProjects = async (req, res) => {
   }
 };
 
+exports.getProjectsList = async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        project_id,
+        project_name
+      FROM projects
+      ORDER BY project_name ASC
+    `);
+
+    res.status(200).json(rows);
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 // ─────────────────────────────────────────────
 // GET SINGLE PROJECT (with workstreams & users)
 // ─────────────────────────────────────────────
