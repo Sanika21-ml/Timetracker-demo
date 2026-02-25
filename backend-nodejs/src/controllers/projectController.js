@@ -11,8 +11,7 @@ exports.createProject = async (req, res) => {
     const {
       project_name,
       project_manager_id,
-      projectType_id,
-      status_id,          
+      projectType_id,         
       client_name,
       start_date,
       end_date,
@@ -46,15 +45,14 @@ exports.createProject = async (req, res) => {
     // ── Insert Project ───────────────────────────
     await connection.query(
       `INSERT INTO projects
-        (project_id, project_name, project_manager_id, projectType_id, status_id,
+        (project_id, project_name, project_manager_id, projectType_id, 
          client_name, estimated_hours, start_date, end_date, project_description)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         projectId,
         project_name,
         project_manager_id || null,
         projectType_id,
-        status_id || null,          // ✅ fixed
         client_name || null,
         totalEstimatedHours,
         start_date || null,
