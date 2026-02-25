@@ -124,7 +124,6 @@ export default function Projects() {
       {/* ADD / EDIT MODAL */}
       {showModal && (
         <div className="modal-backdrop">
-          <div className="modal">
             <div className="modal-header">
               <h2>{isEdit ? "Edit Project" : "Add New Project"}</h2>
               <FiX onClick={() => setShowModal(false)} />
@@ -217,7 +216,6 @@ export default function Projects() {
               )}
             </div>
           </div>
-        </div>
       )}
 
       {/* DELETE CONFIRMATION */}

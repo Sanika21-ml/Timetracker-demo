@@ -158,20 +158,8 @@
 
 /* ================= MODAL ================= */
 .modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-}
-
-.modal {
-  background: #fff;
-  width: 760px;
-  border-radius: 18px;
-  padding: 24px;
+  background:white;
+  width: 991px;
 }
 
 .modal-header {

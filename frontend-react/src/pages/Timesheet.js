@@ -13,8 +13,9 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const emptyRow = (id) => ({
   id,
-  project: "",
+  project_id: "",
   workstream: "",
+  project_workstream_id: "",
   comment: "",
   hours: ["", "", "", "", "", "", ""],
 });
@@ -50,6 +51,27 @@ const Timesheet = () => {
     emptyRow(3),
   ]);
 
+  // ── Project list fetched from API ──────────────────────────────
+  const [projectList, setProjectList] = useState([]);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch("/api/projects/list", {
+          credentials: "include",
+        });
+        if (!response.ok) throw new Error("Failed to fetch projects");
+        const data = await response.json();
+        setProjectList(data); // [{ project_id, project_name }]
+      } catch (error) {
+        console.error("Error fetching project list:", error);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+  // ──────────────────────────────────────────────────────────────
+
   const [activeCommentRow, setActiveCommentRow] = useState(null);
   const popupRef = useRef(null);
 
@@ -67,6 +89,18 @@ const Timesheet = () => {
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
+
+  // ── Update selected project for a row ─────────────────────────
+  const updateProject = (rowId, project_id) => {
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === rowId
+          ? { ...r, project_id, workstream: "", project_workstream_id: "" }
+          : r
+      )
+    );
+  };
+  // ──────────────────────────────────────────────────────────────
 
   const updateHours = (rowId, dayIndex, value) => {
     if (!/^\d{0,2}(:?\d{0,2})?$/.test(value)) return;
@@ -102,6 +136,53 @@ const Timesheet = () => {
   const weekTotal = () =>
     rows.reduce((sum, r) => sum + rowTotal(r), 0);
 
+  // ── SAVE HANDLER ──────────────────────────────────────────────
+  const handleSave = async () => {
+    const week_start_date = format(weekDates[0], "yyyy-MM-dd");
+    const week_end_date   = format(weekDates[6], "yyyy-MM-dd");
+
+    const entries = rows
+      .filter((row) => row.project_workstream_id)
+      .map((row) => ({
+        project_workstream_id: row.project_workstream_id,
+        weekEntries: DAYS.map((day, i) => ({
+          day,
+          date: format(weekDates[i], "yyyy-MM-dd"),
+          hours: row.hours[i] || "00:00",
+          comment: row.comment || "",
+        })),
+      }));
+
+    if (entries.length === 0) {
+      alert("Please select a project and workstream before saving.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/timeentries/weekly", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ entries, week_start_date, week_end_date }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || "Failed to save timesheet.");
+        return;
+      }
+
+      alert(data.message || "Timesheet saved successfully!");
+    } catch (error) {
+      console.error("Save error:", error);
+      alert("An error occurred while saving. Please try again.");
+    }
+  };
+  // ──────────────────────────────────────────────────────────────
+
   return (
     <div className="user-body">
       <UserSidebar />
@@ -111,29 +192,28 @@ const Timesheet = () => {
           <h2>Track Time</h2>
 
           {/* WEEK SELECTOR */}
-<div className="week-controls">
-  <button
-    className="week-arrow"
-    onClick={() => setWeekStart(subWeeks(weekStart, 1))}
-    aria-label="Previous week"
-  >
-    ‹
-  </button>
+          <div className="week-controls">
+            <button
+              className="week-arrow"
+              onClick={() => setWeekStart(subWeeks(weekStart, 1))}
+              aria-label="Previous week"
+            >
+              ‹
+            </button>
 
-  <span className="week-range">
-    {format(weekDates[0], "dd MMM")} –{" "}
-    {format(weekDates[6], "dd MMM yyyy")}
-  </span>
+            <span className="week-range">
+              {format(weekDates[0], "dd MMM")} –{" "}
+              {format(weekDates[6], "dd MMM yyyy")}
+            </span>
 
-  <button
-    className="week-arrow"
-    onClick={() => setWeekStart(addWeeks(weekStart, 1))}
-    aria-label="Next week"
-  >
-    ›
-  </button>
-</div>
-
+            <button
+              className="week-arrow"
+              onClick={() => setWeekStart(addWeeks(weekStart, 1))}
+              aria-label="Next week"
+            >
+              ›
+            </button>
+          </div>
         </div>
 
         <div className="timesheet-body">
@@ -159,9 +239,19 @@ const Timesheet = () => {
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.id}>
+
+                    {/* ── Project Dropdown (wired to API) ── */}
                     <td>
-                      <select>
-                        <option>Select Project</option>
+                      <select
+                        value={row.project_id}
+                        onChange={(e) => updateProject(row.id, e.target.value)}
+                      >
+                        <option value="">Select Project</option>
+                        {projectList.map((p) => (
+                          <option key={p.project_id} value={p.project_id}>
+                            {p.project_name}
+                          </option>
+                        ))}
                       </select>
                     </td>
 
@@ -253,7 +343,7 @@ const Timesheet = () => {
         </div>
 
         <div className="timesheet-actions">
-          <button className="save-btn">Save</button>
+          <button className="save-btn" onClick={handleSave}>Save</button>
           <button
             className="reset-btn"
             onClick={() =>
