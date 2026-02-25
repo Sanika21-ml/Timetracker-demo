@@ -4,16 +4,25 @@ const { v4: uuidv4 } = require("uuid");
 
 // ➤ Create Workstream
 exports.createWorkstream = async (req, res) => {
-  const { workstream_name, description, projectStatus_id } = req.body;
+  const { workstream_name, description, estimated_hrs } = req.body;
+
+  if (!workstream_name) {
+    return res.status(400).json({ message: "workstream_name is required" });
+  }
 
   try {
     const workstreamId = uuidv4();
 
     await pool.query(
       `INSERT INTO workstreams
-       (workstream_id, workstream_name, description, projectStatus_id) 
+       (workstream_id, workstream_name, description, estimated_hrs) 
        VALUES (?, ?, ?, ?)`,
-      [workstreamId, workstream_name, description, projectStatus_id]
+      [
+        workstreamId,
+        workstream_name,
+        description || null,
+        estimated_hrs || 0
+      ]
     );
 
     res.status(201).json({
@@ -38,6 +47,14 @@ exports.getAllWorkstreams = async (req, res) => {
   }
 };
 
+exports.getWorkstreamsList = async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT workstream_id,workstream_name FROM workstreams order by workstream_name ASC ");
+    res.status(200).json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 // ➤ Get Workstream By ID
 exports.getWorkstreamById = async (req, res) => {
@@ -64,9 +81,12 @@ exports.getWorkstreamsByProject = async (req, res) => {
 
   try {
     const [rows] = await pool.query(
-      `SELECT w.workstream_id, w.workstream_name
+      `SELECT 
+         pwa.ProjectWorkStream_id AS project_workstream_id,
+         w.workstream_name
        FROM ProjectWorkStreamAssign pwa
-       JOIN workstreams w ON pwa.workstream_id = w.workstream_id
+       JOIN workstreams w 
+         ON pwa.workstream_id = w.workstream_id
        WHERE pwa.project_id = ?`,
       [projectId]
     );

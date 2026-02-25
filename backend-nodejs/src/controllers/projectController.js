@@ -108,6 +108,92 @@ exports.createProject = async (req, res) => {
   }
 };
 
+exports.assignWorkstreamsToProject = async (req, res) => {
+  const connection = await pool.getConnection();
+
+  try {
+    const { project_id, workstreams } = req.body;
+
+    // Validation
+    if (!project_id || !Array.isArray(workstreams) || workstreams.length === 0) {
+      return res.status(400).json({
+        message: "project_id and workstreams array are required"
+      });
+    }
+
+    await connection.beginTransaction();
+
+    // ✅ Check project exists
+    const [project] = await connection.query(
+      "SELECT project_id FROM projects WHERE project_id = ?",
+      [project_id]
+    );
+
+    if (project.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    for (const ws of workstreams) {
+
+      if (!ws.workstream_id) {
+        await connection.rollback();
+        return res.status(400).json({
+          message: "Each workstream must have workstream_id"
+        });
+      }
+
+      // ✅ Check workstream exists
+      const [existingWs] = await connection.query(
+        "SELECT workstream_id FROM workstreams WHERE workstream_id = ?",
+        [ws.workstream_id]
+      );
+
+      if (existingWs.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({
+          message: `Workstream not found: ${ws.workstream_id}`
+        });
+      }
+
+      // ✅ Prevent duplicate assignment
+      const [duplicate] = await connection.query(
+        `SELECT 1 FROM ProjectWorkStreamAssign
+         WHERE project_id = ? AND workstream_id = ?`,
+        [project_id, ws.workstream_id]
+      );
+
+      if (duplicate.length > 0) {
+        continue; // Skip duplicate instead of failing
+      }
+
+      // ✅ Insert mapping only
+      await connection.query(
+        `INSERT INTO ProjectWorkStreamAssign
+         (ProjectWorkStream_id, project_id, workstream_id)
+         VALUES (?, ?, ?)`,
+        [
+          uuidv4(),
+          project_id,
+          ws.workstream_id
+        ]
+      );
+    }
+
+    await connection.commit();
+
+    res.status(201).json({
+      message: "Workstreams assigned successfully"
+    });
+
+  } catch (error) {
+    await connection.rollback();
+    res.status(500).json({ error: error.message });
+  } finally {
+    connection.release();
+  }
+};
+
 // ─────────────────────────────────────────────
 // GET ALL PROJECTS
 // ─────────────────────────────────────────────
