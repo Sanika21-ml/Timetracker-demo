@@ -4,25 +4,36 @@ const { v4: uuidv4 } = require("uuid");
 
 // ➤ Create Workstream
 exports.createWorkstream = async (req, res) => {
-  const { workstream_name, description, estimated_hrs } = req.body;
+  let { workstream_name, description, estimated_hrs } = req.body;
 
-  if (!workstream_name) {
+  if (!workstream_name?.trim()) {
     return res.status(400).json({ message: "workstream_name is required" });
   }
 
+  workstream_name = workstream_name.trim();
+  estimated_hrs = Number(estimated_hrs) || 0;
+
+  if (estimated_hrs < 0) {
+    return res.status(400).json({ message: "estimated_hrs cannot be negative" });
+  }
+
   try {
+    const [existing] = await pool.query(
+      "SELECT workstream_id FROM workstreams WHERE workstream_name = ?",
+      [workstream_name]
+    );
+
+    if (existing.length > 0) {
+      return res.status(409).json({ message: "Workstream already exists" });
+    }
+
     const workstreamId = uuidv4();
 
     await pool.query(
       `INSERT INTO workstreams
-       (workstream_id, workstream_name, description, estimated_hrs) 
+       (workstream_id, workstream_name, description, estimated_hrs)
        VALUES (?, ?, ?, ?)`,
-      [
-        workstreamId,
-        workstream_name,
-        description || null,
-        estimated_hrs || 0
-      ]
+      [workstreamId, workstream_name, description || null, estimated_hrs]
     );
 
     res.status(201).json({
@@ -34,7 +45,6 @@ exports.createWorkstream = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 
 // ➤ Get All Workstreams

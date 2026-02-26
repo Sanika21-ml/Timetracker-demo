@@ -11,7 +11,8 @@ exports.createProject = async (req, res) => {
     const {
       project_name,
       project_manager_id,
-      projectType_id,         
+      projectType_id,
+      projectStatus_id,         
       client_name,
       start_date,
       end_date,
@@ -45,14 +46,15 @@ exports.createProject = async (req, res) => {
     // ── Insert Project ───────────────────────────
     await connection.query(
       `INSERT INTO projects
-        (project_id, project_name, project_manager_id, projectType_id, 
+        (project_id, project_name, project_manager_id, projectType_id, projectStatus_id,
          client_name, estimated_hours, start_date, end_date, project_description)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         projectId,
         project_name,
         project_manager_id || null,
         projectType_id,
+        projectStatus_id,
         client_name || null,
         totalEstimatedHours,
         start_date || null,
@@ -165,7 +167,6 @@ exports.assignWorkstreamsToProject = async (req, res) => {
         continue; // Skip duplicate instead of failing
       }
 
-      // ✅ Insert mapping only
       await connection.query(
         `INSERT INTO ProjectWorkStreamAssign
          (ProjectWorkStream_id, project_id, workstream_id)
@@ -296,7 +297,7 @@ exports.updateProject = async (req, res) => {
       project_name,
       project_manager_id,
       projectType_id,
-      status_id,          // ✅ added
+      projectStatus_id,         
       client_name,
       start_date,
       end_date,
@@ -330,7 +331,7 @@ exports.updateProject = async (req, res) => {
        SET project_name       = ?,
            project_manager_id = ?,
            projectType_id     = ?,
-           status_id          = ?,    
+           projectStatus_id   = ?,    
            client_name        = ?,
            estimated_hours    = ?,
            start_date         = ?,
@@ -341,7 +342,7 @@ exports.updateProject = async (req, res) => {
         project_name,
         project_manager_id || null,
         projectType_id,
-        status_id || null,          // ✅ fixed
+        projectStatus_id || null,        
         client_name || null,
         totalEstimatedHours,
         start_date || null,
