@@ -4,7 +4,7 @@
   "description": "Enterprise Time Tracker Backend API",
   "main": "server.js",
   "scripts": {
-    "migrate": "node migrate.js",
+    "migrate": "node db/migrate.js",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"
   },

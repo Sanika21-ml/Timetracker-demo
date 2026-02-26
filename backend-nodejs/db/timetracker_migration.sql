@@ -8,11 +8,11 @@
 -- -------------------------------------------------------------
 -- 0. Create & select the database
 -- -------------------------------------------------------------
-CREATE DATABASE IF NOT EXISTS timetracker
+CREATE DATABASE IF NOT EXISTS timetracker2
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE timetracker;
+USE timetracker2;
 
 -- -------------------------------------------------------------
 -- 1. users
