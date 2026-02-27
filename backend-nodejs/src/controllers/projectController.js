@@ -46,8 +46,8 @@ exports.createProject = async (req, res) => {
     // ── Insert Project ───────────────────────────
     await connection.query(
       `INSERT INTO projects
-        (project_id, project_name, project_manager_id, projectType_id, projectStatus_id,
-         client_name, estimated_hours, start_date, end_date, project_description)
+        (project_id, project_name, project_manager_id, projectType_id,
+         client_name, estimated_hours, start_date, end_date, project_description, projectStatus_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         projectId,
@@ -202,11 +202,11 @@ exports.getProjects = async (req, res) => {
       SELECT
         p.*,
         pt.TypeValue       AS project_type,
-        ps.StatusValue     AS project_status,
+       
         u.name             AS project_manager_name
       FROM projects p
       LEFT JOIN projecttype pt      ON p.projectType_id = pt.projectType_id
-      LEFT JOIN projectstatus ps    ON p.status_id      = ps.projectStatus_id
+    
       LEFT JOIN users u             ON p.project_manager_id = u.user_id
     `);
     res.json(rows);

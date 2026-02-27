@@ -1,236 +1,328 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../styles/Projects.css";
-import {
-  FiPlus,
-  FiEdit2,
-  FiTrash2,
-  FiX,
-  FiSearch,
-} from "react-icons/fi";
-
 const EMPTY_PROJECT = {
   id: null,
   name: "",
   type: "",
-  status: "In Progress",
+  status: "",
   hours: "",
   startDate: "",
-  endDate: "",
-  client: "",
 };
-
-export default function Projects() {
+const WORKSTREAM_OPTIONS = [
+  "Requirement",
+  "Documentation",
+  "Design",
+  "Code",
+  "Test",
+  "Deployment",
+  "Planning",
+  "Delivery",
+];
+const EMPLOYEE_OPTIONS = [
+  "Krushna Lavhare",
+  "Rohit Nandan",
+  "Wasim Baraskar",
+  "Smita Ghune",
+];
+function Project() {
   const [projects, setProjects] = useState([]);
-  const [search, setSearch] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [isEdit, setIsEdit] = useState(false);
-  const [form, setForm] = useState(EMPTY_PROJECT);
-  const [deleteId, setDeleteId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState(EMPTY_PROJECT);
+  const [selectedWorkstreams, setSelectedWorkstreams] = useState([]);
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const [workstreamSearch, setWorkstreamSearch] = useState("");
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [newWorkstream, setNewWorkstream] = useState("");
+  const [workstreamList, setWorkstreamList] = useState(WORKSTREAM_OPTIONS);
 
-  const filteredProjects = projects.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+    /* ================= FETCH PROJECTS FROM API ================= */
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:8080/api/projects/get",
+          {
+            method: "GET",
+            credentials: "include",
+          }
+        );
+
+        const data = await response.json();
+
+        // Map backend response to existing UI structure (NO UI CHANGE)
+        const mappedProjects = data.map((p) => ({
+          id: p.project_id,
+          name: p.project_name,
+          type: p.project_type,
+          status: p.projectStatus_id || "",
+          hours: p.estimated_hours,
+          startDate: new Date(p.start_date).toLocaleDateString(),
+        }));
+
+        setProjects(mappedProjects);
+      } catch (error) {
+        console.error("❌ Failed to fetch projects:", error);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+
+  /* ================= FORM LOGIC ================= */
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+  const toggleWorkstream = (item) => {
+    if (selectedWorkstreams.includes(item)) {
+      setSelectedWorkstreams(selectedWorkstreams.filter((w) => w !== item));
+    } else {
+      setSelectedWorkstreams([...selectedWorkstreams, item]);
+    }
+  };
+  const toggleEmployee = (item) => {
+    if (selectedEmployees.includes(item)) {
+      setSelectedEmployees(selectedEmployees.filter((e) => e !== item));
+    } else {
+      setSelectedEmployees([...selectedEmployees, item]);
+    }
+  };
+  const addNewWorkstream = () => {
+    if (newWorkstream.trim() !== "") {
+      setWorkstreamList([...workstreamList, newWorkstream]);
+      setNewWorkstream("");
+    }
+  };
+  const handleSaveProject = () => {
+    if (!formData.name || !formData.type) {
+      alert("Project Name and Type are required!");
+      return;
+    }
+    const newProject = {
+      ...formData,
+      id: Date.now(),
+      workstreams: selectedWorkstreams,
+      employees: selectedEmployees,
+    };
+    setProjects([...projects, newProject]);
+    // Reset everything
+    setFormData(EMPTY_PROJECT);
+    setSelectedWorkstreams([]);
+    setSelectedEmployees([]);
+    setShowForm(false);
+  };
+  const handleCancel = () => {
+    setShowForm(false);
+  };
+  const filteredWorkstreams = workstreamList.filter((w) =>
+    w.toLowerCase().includes(workstreamSearch.toLowerCase()),
   );
-
-  /* ---------- MODAL ACTIONS ---------- */
-  const openAddModal = () => {
-    setIsEdit(false);
-    setForm(EMPTY_PROJECT);
-    setShowModal(true);
-  };
-
-  const openEditModal = (project) => {
-    setIsEdit(true);
-    setForm(project);
-    setShowModal(true);
-  };
-
-  const saveProject = () => {
-    setProjects([...projects, { ...form, id: Date.now() }]);
-    setShowModal(false);
-  };
-
-  const updateProject = () => {
-    setProjects(projects.map(p => (p.id === form.id ? form : p)));
-    setShowModal(false);
-  };
-
-  const confirmDelete = () => {
-    setProjects(projects.filter(p => p.id !== deleteId));
-    setDeleteId(null);
-  };
-
-  /* ---------- UI ---------- */
+  const filteredEmployees = EMPLOYEE_OPTIONS.filter((e) =>
+    e.toLowerCase().includes(employeeSearch.toLowerCase()),
+  );
+  /* ================= UI ================= */
   return (
     <div className="projects-page">
-
-      {/* HEADER */}
-      <div className="projects-header">
-        <div>
-          <h1>Projects</h1>
-          <p>View and manage projects</p>
-        </div>
-
-        <div className="header-actions">
-          <div className="search-box">
-            <FiSearch />
-            <input
-              placeholder="Search project..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-
-          <button className="add-project-btn" onClick={openAddModal}>
-            <FiPlus /> Add Project
-          </button>
-        </div>
-      </div>
-
-      {/* TABLE */}
-      <div className="projects-table-wrapper">
-        <table className="projects-table">
-          <thead>
-            <tr>
-              <th>Project Name</th>
-              <th>Type</th>
-              <th>Status</th>
-              <th>Est. Hours</th>
-              <th>Start Date</th>
-              <th className="actions-col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredProjects.map(p => (
-              <tr key={p.id}>
-                <td className="project-name">{p.name}</td>
-                <td>
-                  <span className={`badge ${p.type === "Client" ? "badge-client" : "badge-internal"}`}>
-                    {p.type || "-"}
-                  </span>
-                </td>
-                <td><span className="badge badge-status">{p.status}</span></td>
-                <td>{p.hours || "-"}</td>
-                <td>{p.startDate || "-"}</td>
-                <td className="actions">
-                  <FiEdit2 onClick={() => openEditModal(p)} />
-                  <FiTrash2 className="delete" onClick={() => setDeleteId(p.id)} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ADD / EDIT MODAL */}
-      {showModal && (
-        <div className="modal-backdrop">
-            <div className="modal-header">
-              <h2>{isEdit ? "Edit Project" : "Add New Project"}</h2>
-              <FiX onClick={() => setShowModal(false)} />
+      {/* ================= PROJECT LIST PAGE ================= */}
+      {!showForm && (
+        <>
+          <div className="projects-header">
+            <div>
+              <h2>Projects</h2>
+              <p>View and manage projects</p>
             </div>
-
-            <div className="modal-grid">
-              <div>
+            <button className="add-btn" onClick={() => setShowForm(true)}>
+              + Add Project
+            </button>
+          </div>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Project Name</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Est. Hours</th>
+                  <th>Start Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projects.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: "center" }}>
+                      No Projects Added
+                    </td>
+                  </tr>
+                ) : (
+                  projects.map((project) => (
+                    <tr key={project.id}>
+                      <td>{project.name}</td>
+                      <td>{project.type}</td>
+                      <td>{project.status}</td>
+                      <td>{project.hours}Hr</td>
+                      <td>{project.startDate}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+      {/* ================= ADD PROJECT FORM ================= */}
+      {showForm && (
+        <div className="project-form-wrapper">
+          <div className="project-form-container">
+            <h1 className="form-title">Add New Project</h1>
+            <div className="form-grid-4">
+              <div className="form-group">
                 <label>Project Name *</label>
                 <input
-                  value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
-                  placeholder="Enter project name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Enter Project Name"
                 />
               </div>
-
-              <div>
+              <div className="form-group">
                 <label>Type *</label>
                 <select
-                  value={form.type}
-                  onChange={e => setForm({ ...form, type: e.target.value })}
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
                 >
                   <option value="">Select Type</option>
-                  <option value="Client">Client Project</option>
-                  <option value="Internal">Internal Project</option>
+                  <option value="Client Project">Client Project</option>
+                  <option value="Internal Project">Internal Project</option>
                 </select>
               </div>
-
-              <div>
+              <div className="form-group">
                 <label>Status</label>
                 <select
-                  value={form.status}
-                  onChange={e => setForm({ ...form, status: e.target.value })}
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  placeholder="Select Status"
                 >
                   <option>In Progress</option>
+                  <option>Hold</option>
                   <option>Completed</option>
-                  <option>On Hold</option>
                 </select>
               </div>
-
-              <div>
+              <div className="form-group">
+                <label>Client Name</label>
+                <input
+                  type="text"
+                  placeholder="Enter Client Name"
+                />
+              </div>
+              <div className="form-group">
                 <label>Estimated Hours</label>
                 <input
                   type="number"
-                  value={form.hours}
-                  onChange={e => setForm({ ...form, hours: e.target.value })}
+                  name="hours"
+                  value={formData.hours}
+                  onChange={handleChange}
+                  placeholder="0"
                 />
               </div>
-
-              <div>
+              <div className="form-group">
                 <label>Start Date</label>
                 <input
                   type="date"
-                  value={form.startDate}
-                  onChange={e => setForm({ ...form, startDate: e.target.value })}
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleChange}
                 />
               </div>
-
-              <div>
+              <div className="form-group">
                 <label>End Date</label>
                 <input
                   type="date"
-                  value={form.endDate}
-                  onChange={e => setForm({ ...form, endDate: e.target.value })}
+                  name="endDate"
+                  value={formData.endDate}
+                  onChange={handleChange}
                 />
               </div>
-
-              <div className="full">
-                <label>Client Name</label>
-                <input
-                  value={form.client}
-                  onChange={e => setForm({ ...form, client: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              {isEdit ? (
-                <>
-                  <button className="btn-secondary" onClick={() => setShowModal(false)}>
-                    Cancel
-                  </button>
-                  <button className="btn-primary" onClick={updateProject}>
-                    Update
-                  </button>
-                </>
-              ) : (
-                <button className="btn-primary" onClick={saveProject}>
-                  Save
-                </button>
-              )}
             </div>
           </div>
-      )}
-
-      {/* DELETE CONFIRMATION */}
-      {deleteId && (
-        <div className="modal-backdrop">
-          <div className="confirm-modal">
-            <h3>Delete Project?</h3>
-            <p>This action cannot be undone.</p>
-            <div className="confirm-actions">
-              <button onClick={() => setDeleteId(null)}>Cancel</button>
-              <button className="danger" onClick={confirmDelete}>Delete</button>
+          {/* WORKSTREAM */}
+          <div className="assignment-section">
+            <div className="assign-card">
+              <h3>Assigned Workstreams</h3>
+              <div className="assign-box">
+                {selectedWorkstreams.map((item, index) => (
+                  <span key={index} className="selected-tag">
+                    {item}
+                  </span>
+                ))}
+              </div>
+              <input
+                className="search-input"
+                placeholder="Search workstreams..."
+                value={workstreamSearch}
+                onChange={(e) => setWorkstreamSearch(e.target.value)}
+              />
+              <div className="tag-container">
+                {filteredWorkstreams.map((item, index) => (
+                  <span
+                    key={index}
+                    className="tag"
+                    onClick={() => toggleWorkstream(item)}
+                  >
+                    + {item}
+                  </span>
+                ))}
+              </div>
+              <div className="add-new-row">
+                <input
+                  placeholder="New Workstream"
+                  value={newWorkstream}
+                  onChange={(e) => setNewWorkstream(e.target.value)}
+                />
+                <button onClick={addNewWorkstream}>Add</button>
+              </div>
             </div>
+            {/* EMPLOYEES */}
+            <div className="assign-card">
+              <h3>Assigned Employees</h3>
+              <div className="assign-box">
+                {selectedEmployees.map((item, index) => (
+                  <span key={index} className="selected-tag">
+                    {item}
+                  </span>
+                ))}
+              </div>
+              <input
+                className="search-input"
+                placeholder="Search employees..."
+                value={employeeSearch}
+                onChange={(e) => setEmployeeSearch(e.target.value)}
+              />
+              <div className="tag-container">
+                {filteredEmployees.map((item, index) => (
+                  <span
+                    key={index}
+                    className="tag"
+                    onClick={() => toggleEmployee(item)}
+                  >
+                    + {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="form-actions">
+            <button className="cancel-btn" onClick={handleCancel}>
+              Cancel
+            </button>
+            <button className="save-btn" onClick={handleSaveProject}>
+              Save Project
+            </button>
           </div>
         </div>
       )}
     </div>
   );
 }
+export default Project;
