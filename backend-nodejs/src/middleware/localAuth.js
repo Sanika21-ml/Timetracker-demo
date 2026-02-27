@@ -3,7 +3,7 @@
 
 module.exports = (req, res, next) => {
   req.user = {
-    user_id: "f63dafb3-0ca3-11f1-a263-00155d888310",
+    user_id: "6d5db6b1-13b0-11f1-875a-005056c00001",
     email: "krushna.lavhare@cnovate.io",
     role_id: 1
   };
