@@ -29,7 +29,7 @@ const UserSidebar = () => {
           }
         >
           <Clock size={18} />
-          <span>Track Time</span>
+          <span>Time Track</span>
         </NavLink>
 
         <NavLink

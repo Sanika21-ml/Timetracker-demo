@@ -41,7 +41,8 @@
 }
 
 .week-range {
-  font-size: 14px; /* title-small */
+  font-size: 14px;
+  /* title-small */
   font-weight: 600;
   color: #111827;
   white-space: nowrap;
@@ -64,16 +65,18 @@
   width: 100%;
   border-collapse: collapse;
 }
-.timesheet-table-wrapper
-{
+
+.timesheet-table-wrapper {
   /* Set the height of table body */
-            height: 270px;
+  height: 270px;
 
-            /* Set vertical scroll */
-            overflow-y: auto;
+  /* Set vertical scroll */
+  overflow-y: auto;
 
-            /* Hide the horizontal scroll */
-            overflow-x: hidden;
+  overflow: auto;
+
+  /* Hide the horizontal scroll */
+  overflow-x: auto;
 }
 
 .timesheet-table th,
@@ -87,6 +90,10 @@
 .timesheet-table th {
   background: #f8fafc;
   font-weight: 600;
+}
+
+.timesheet-table td {
+  height: 10px;
 }
 
 .weekend {
@@ -200,4 +207,3 @@
   font-weight: 600;
   cursor: pointer;
 }
-

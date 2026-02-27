@@ -33,7 +33,16 @@ const parseToMinutes = (value) => {
   let [h, m = "0"] = value.split(":");
   return Number(h) * 60 + Number(m.padEnd(2, "0"));
 };
+const hhmmToDecimal = (value) => {
+  if (!value) return 0;
 
+  if (!value.includes(":")) {
+    return Number(value);
+  }
+
+  const [h, m = "0"] = value.split(":");
+  return Number(h) + Number(m) / 60;
+};
 const minutesToHHMM = (mins) => {
   const h = String(Math.floor(mins / 60)).padStart(2, "0");
   const m = String(mins % 60).padStart(2, "0");
@@ -53,24 +62,50 @@ const Timesheet = () => {
 
   // ── Project list fetched from API ──────────────────────────────
   const [projectList, setProjectList] = useState([]);
+  // 🔹 Workstreams mapped per row
+  const [workstreamsByRow, setWorkstreamsByRow] = useState({});
 
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await fetch("/api/projects/list", {
-          credentials: "include",
-        });
-        if (!response.ok) throw new Error("Failed to fetch projects");
+        const response = await fetch(
+          "http://localhost:8080/api/projects/get/list",
+          { credentials: "include" }
+        );
+
+        console.log("👉 Raw response:", response);
+
         const data = await response.json();
-        setProjectList(data); // [{ project_id, project_name }]
+        console.log("✅ Project data received in React:", data);
+
+        setProjectList(data);
       } catch (error) {
-        console.error("Error fetching project list:", error);
+        console.error("❌ Error fetching project list:", error);
       }
     };
 
     fetchProjects();
   }, []);
   // ──────────────────────────────────────────────────────────────
+  // 🔹 Fetch workstreams for selected project (row-specific)
+  const fetchWorkstreamsByProject = async (rowId, projectId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/workstreams/get/project/${projectId}`,
+        { credentials: "include" }
+      );
+
+      const data = await response.json();
+
+      setWorkstreamsByRow((prev) => ({
+        ...prev,
+        [rowId]: data,
+      }));
+    } catch (error) {
+      console.error("❌ Error fetching workstreams:", error);
+    }
+  };
+
 
   const [activeCommentRow, setActiveCommentRow] = useState(null);
   const popupRef = useRef(null);
@@ -99,6 +134,12 @@ const Timesheet = () => {
           : r
       )
     );
+
+    if (project_id) {
+      fetchWorkstreamsByProject(rowId, project_id);
+    } else {
+      setWorkstreamsByRow((prev) => ({ ...prev, [rowId]: [] }));
+    }
   };
   // ──────────────────────────────────────────────────────────────
 
@@ -109,11 +150,11 @@ const Timesheet = () => {
       prev.map((r) =>
         r.id === rowId
           ? {
-              ...r,
-              hours: r.hours.map((h, i) =>
-                i === dayIndex ? value : h
-              ),
-            }
+            ...r,
+            hours: r.hours.map((h, i) =>
+              i === dayIndex ? value : h
+            ),
+          }
           : r
       )
     );
@@ -139,7 +180,7 @@ const Timesheet = () => {
   // ── SAVE HANDLER ──────────────────────────────────────────────
   const handleSave = async () => {
     const week_start_date = format(weekDates[0], "yyyy-MM-dd");
-    const week_end_date   = format(weekDates[6], "yyyy-MM-dd");
+    const week_end_date = format(weekDates[6], "yyyy-MM-dd");
 
     const entries = rows
       .filter((row) => row.project_workstream_id)
@@ -148,7 +189,7 @@ const Timesheet = () => {
         weekEntries: DAYS.map((day, i) => ({
           day,
           date: format(weekDates[i], "yyyy-MM-dd"),
-          hours: row.hours[i] || "00:00",
+          hours: hhmmToDecimal(row.hours[i]),
           comment: row.comment || "",
         })),
       }));
@@ -157,9 +198,19 @@ const Timesheet = () => {
       alert("Please select a project and workstream before saving.");
       return;
     }
+    // ✅ ADD THIS BLOCK (payload)
+    const payload = {
+      week_start_date,
+      week_end_date,
+      entries,
+    };
+
+    // ✅ ADD THIS LINE (debug)
+    console.log("📤 Payload being sent:", payload);
+
 
     try {
-      const response = await fetch("/api/timeentries/weekly", {
+      const response = await fetch("http://localhost:8080/api/timesheet/weekly", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -167,6 +218,14 @@ const Timesheet = () => {
         credentials: "include",
         body: JSON.stringify({ entries, week_start_date, week_end_date }),
       });
+
+      const contentType = response.headers.get("content-type");
+
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error("❌ Non-JSON response:", text);
+        throw new Error("Backend did not return JSON");
+      }
 
       const data = await response.json();
 
@@ -189,7 +248,7 @@ const Timesheet = () => {
 
       <div className="user-content">
         <div className="timesheet-top">
-          <h2>Track Time</h2>
+          <h2>Time Track</h2>
 
           {/* WEEK SELECTOR */}
           <div className="week-controls">
@@ -256,8 +315,28 @@ const Timesheet = () => {
                     </td>
 
                     <td>
-                      <select>
-                        <option>Select Workstream</option>
+                      <select
+                        value={row.project_workstream_id}
+                        onChange={(e) =>
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.id === row.id
+                                ? { ...r, project_workstream_id: e.target.value }
+                                : r
+                            )
+                          )
+                        }
+                        disabled={!row.project_id}
+                      >
+                        <option value="">Select Workstream</option>
+                        {(workstreamsByRow[row.id] || []).map((ws) => (
+                          <option
+                            key={ws.project_workstream_id}
+                            value={ws.project_workstream_id}
+                          >
+                            {ws.workstream_name}
+                          </option>
+                        ))}
                       </select>
                     </td>
 
@@ -357,5 +436,4 @@ const Timesheet = () => {
     </div>
   );
 };
-
 export default Timesheet;
